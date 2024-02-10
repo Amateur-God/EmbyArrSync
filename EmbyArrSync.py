@@ -189,10 +189,9 @@ def unmonitor_movies(radarr_id, monitored):
         print(f"Error updating monitoring status for movie ID {radarr_id}: {response.status_code}")
 
 def delete_item(item_id):
-    url = f"{EMBY_URL}/Items"
-    params = {'Ids': item_id, 'api_key': EMBY_API_KEY}
-    response = requests.delete(url, params=params)
-    if response.status_code == 200:
+    url = f"{EMBY_URL}/Items?{item_id}&api_key={EMBY_API_KEY}"
+    response = requests.delete(url)
+    if response.status_code == 204:
         print(f"Item {item_id} deleted successfully from Emby.")
     else:
         print(f"Failed to delete item {item_id} from Emby: {response.status_code}, {response.text}")
