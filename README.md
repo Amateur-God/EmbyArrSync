@@ -1,1 +1,2 @@
 # EmbyArrSync
+DO NOT USE STILL IN DEV
