@@ -12,6 +12,8 @@ Make sure you have Python 3.10 or higher installed:
 
 Get the latest version using your favorite git client or by downloading the latest release from here:
 
+https://github.com/Amateur-God/EmbyArrSync/releases
+
 ### Step 3 - Set up and run
 
 #### Get a TVDB API Key
