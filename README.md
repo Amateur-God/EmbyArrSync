@@ -14,15 +14,15 @@ Get the latest version using your favorite git client or by downloading the late
 
 ### Step 3 - Set up and run
 
-## Get a TVDB API Key
+#### Get a TVDB API Key
 
 https://thetvdb.com/dashboard/account/apikey
 
-## Get a TMDB API key
+#### Get a TMDB API key
 
 https://www.themoviedb.org/settings/api
 
-## Edit Env Variables
+#### Edit Env Variables
 
 Open the EmbyArrSync.py with your prefered text editor and and edit the following env variables that can be found at the top of the file
 
@@ -50,7 +50,7 @@ BLACKLISTED_MOVIES = ["Example Movie 1", "Example Movie 2"]
 BLACKLISTED_TV_SHOWS = ["Example Show 1", "Example Show 2"]
 ```
 
-## linux
+#### linux
 
 This assumes you moved the script file to its own folder in opt
 
