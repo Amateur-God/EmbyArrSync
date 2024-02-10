@@ -16,6 +16,9 @@ EMBY_API_KEY = 'EMBY_API_KEY'
 EMBY_URL = 'http://IP:PORT/emby'
 EMBY_USER_ID = 'EMBY_USER_ID'
 
+#tvdb/tmdb
+TVDB_API_KEY = 'TVDB_API_KEY'
+TMDB_API_KEY = 'TMDB_API_KEY'
 # Blacklisted movies and TV shows
 BLACKLISTED_MOVIES = []
 BLACKLISTED_TV_SHOWS = []
@@ -38,17 +41,60 @@ def get_watched_items(user_id):
         print("Error fetching watched items from Emby")
         return None
 
-def get_ext_id(item_id):
-    url = f"{EMBY_URL}/Items/{item_id}/ExternalId"
-    params = {'api_key': EMBY_API_KEY}
-    response = requests.get(url, params=params)
+
+def get_tmdb_id(movie_name):
+    search_url = f'https://api.themoviedb.org/3/search/movie'
+    params = {
+        'api_key': TMDB_API_KEY,
+        'query': movie_name
+    }
+    response = requests.get(search_url, params=params)
     if response.status_code == 200:
-        data = response.json()
-        if 'Tvdb' in data:
-            return data['Tvdb']
-        if 'Tmdb' in data:
-            return data['Tmdb']
+        results = response.json().get('results', [])
+        if results:
+            # Assuming you want the first result
+            first_result = results[0]
+            return first_result.get('id')
+    else:
+        print(f"Error searching TMDB for {movie_name}: {response.status_code}")
     return None
+
+def get_tvdb_token(api_key):
+    url = 'https://api.thetvdb.com/login'
+    headers = {'Content-Type': 'application/json'}
+    data = {'apikey': api_key}
+    response = requests.post(url, json=data, headers=headers)
+    if response.status_code == 200:
+        return response.json().get('token')
+    print(f"Failed to obtain TVDB token: {response.status_code}, {response.text}")
+    return None
+
+def get_tvdb_id(series_name):
+    api_key = TVDB_API_KEY  # Use the global API key
+    token = get_tvdb_token(api_key)
+    if not token:
+        print("Failed to get TVDB token.")
+        return None
+
+    search_url = 'https://api.thetvdb.com/search/series'
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Accept': 'application/json'
+    }
+    params = {'name': series_name}
+    response = requests.get(search_url, headers=headers, params=params)
+
+    if response.status_code == 200:
+        results = response.json().get('data', [])
+        if results:
+            return results[0].get('id')
+        else:
+            print(f"No results found for {series_name}")
+            return None
+    else:
+        print(f"Failed to search TVDB for {series_name}: {response.status_code}, {response.text}")
+        return None
+
 
 def get_episode_info(series_id, season_number):
     url = f"{SONARR_URL}/episode"
@@ -154,3 +200,87 @@ def delete_movie(radarr_id, delete_files=False, add_import_exclusion=False):
         print(f"Movie ID {radarr_id} deleted successfully.")
     else:
         print(f"Error deleting movie ID {radarr_id}: {response.status_code}")
+
+@app.route('/webhook/emby', methods=['POST'])
+def emby_webhook():
+    data = request.json
+    if not data or 'Items' not in data:
+        return 'Invalid data', 400
+
+    for item in data['Items']:
+        if item['Type'] == 'Episode' and item.get('SeriesName') not in BLACKLISTED_TV_SHOWS:
+            # Fetch the TVDB ID using the series name
+            tvdb_id = get_tvdb_id(item['SeriesName'], TVDB_API_KEY)
+            if tvdb_id:
+                series_id = get_series_id_by_tvdb(tvdb_id)
+                if series_id:
+                    episode_info = get_episode_info(series_id, item['ParentIndexNumber'])
+                    if episode_info:
+                        episode_ids = [ep['id'] for ep in episode_info if ep['episodeNumber'] == item['IndexNumber']]
+                        if episode_ids:
+                            unmonitor_episodes(episode_ids, False)
+                            for episode_id in episode_ids:
+                                delete_episode_file(episode_id)
+                                print(f"Webhook processed episode: {item['Name']} from series: {item['SeriesName']} with TVDB ID {tvdb_id}")
+            else:
+                print(f"TVDB ID not found for series '{item['SeriesName']}'.")
+
+        elif item['Type'] == 'Movie' and item.get('Name') not in BLACKLISTED_MOVIES:
+            # Fetch the TMDB ID using the movie name
+            tmdb_id = get_tmdb_id(item['Name'])
+            if tmdb_id:
+                movie_info = get_movie_info_by_tmdb(tmdb_id)
+                if movie_info:
+                    radarr_id = movie_info[0]['id']  # Assuming the first movie is the correct one
+                    unmonitor_movies(radarr_id, False)
+                    delete_movie(radarr_id, delete_files=False, add_import_exclusion=False)
+                    print(f"Webhook processed movie: {item['Name']} with TMDB ID {tmdb_id}")
+            else:
+                print(f"TMDB ID not found for movie '{item['Name']}'.")
+
+    return 'Webhook processed', 200
+
+def main():
+    watched_items = get_watched_items(EMBY_USER_ID)
+    if watched_items:
+        for item in watched_items:
+            if item['Type'] == 'Episode' and item.get('SeriesName') not in BLACKLISTED_TV_SHOWS:
+                # Use the series name to fetch the TVDB ID directly
+                tvdb_id = get_tvdb_id(item['SeriesName'])
+                if tvdb_id:
+                    # Assuming get_series_id_by_tvdb returns the Sonarr series ID using the TVDB ID
+                    series_id = get_series_id_by_tvdb(tvdb_id)
+                    if series_id:
+                        episode_info = get_episode_info(series_id, item['ParentIndexNumber'])
+                        if episode_info:
+                            episode_ids = [ep['id'] for ep in episode_info if ep['episodeNumber'] == item['IndexNumber']]
+                            if episode_ids:
+                                unmonitor_episodes(episode_ids, False)
+                                for episode_id in episode_ids:
+                                    delete_episode_file(episode_id)
+                                    print(f"Processed episode: {item['Name']} from series: {item['SeriesName']} with TVDB ID {tvdb_id}")
+                else:
+                    print(f"TVDB ID not found for series '{item['SeriesName']}'.")
+
+            elif item['Type'] == 'Movie' and item.get('Name') not in BLACKLISTED_MOVIES:
+                # Use the movie name to fetch the TMDB ID directly
+                tmdb_id = get_tmdb_id(item['Name'])
+                if tmdb_id:
+                    # Assuming get_movie_info_by_tmdb returns the Radarr movie info using the TMDB ID
+                    movie_info = get_movie_info_by_tmdb(tmdb_id)
+                    if movie_info:
+                        radarr_id = movie_info['id']  # Assuming the first movie is the correct one
+                        unmonitor_movies(radarr_id, False)
+                        delete_movie(radarr_id, delete_files=False, add_import_exclusion=False)
+                        print(f"Processed movie: {item['Name']} with TMDB ID {tmdb_id}")
+                else:
+                    print(f"TMDB ID not found for movie '{item['Name']}'.")
+
+    else:
+        print("No watched items found from Emby.")
+
+    # Uncomment the line below if you are running this as a standalone script without needing Flask's web server capabilities.
+    # app.run(debug=True, port=5000)
+
+if __name__ == "__main__":
+    main()
