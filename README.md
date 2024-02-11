@@ -30,6 +30,8 @@ https://www.themoviedb.org/settings/api
 
 Open the EmbyArrSync.py with your prefered text editor and and edit the following env variables that can be found at the top of the file
 
+Note if you want the sonarr/Radarr connection to handle updating emby library set `EMBY_DELETE = False` Otherwise set `EMBY_DELETE = True`
+
 ```py
 # Sonarr API details
 SONARR_API_KEY = 'SONARR_API_KEY'
@@ -43,6 +45,7 @@ RADARR_URL = 'http://IP:PORT/api/v3'
 EMBY_API_KEY = 'EMBY_API_KEY'
 EMBY_URL = 'http://IP:PORT/emby'
 EMBY_USER_ID = 'EMBY_USER_ID'
+EMBY_DELETE = False # boolean value (True/False) Set to true if you want the script to handle deleting from emby library, set to false if you are using the Sonarr/Radarr connect functions to handle emby library updates
 
 #tvdb/tmdb
 TVDB_API_KEY = 'TVDB_API_KEY'

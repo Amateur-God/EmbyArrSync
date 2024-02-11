@@ -13,6 +13,7 @@ RADARR_URL = 'http://IP:PORT/api/v3'
 EMBY_API_KEY = 'EMBY_API_KEY'
 EMBY_URL = 'http://IP:PORT/emby'
 EMBY_USER_ID = 'EMBY_USER_ID'
+EMBY_DELETE = False #boolean value (True/False) Set to true if you want the script to handle deleting from emby library, set to false if you are using the Sonarr/Radarr connect functions to handle emby library updates
 
 #tvdb/tmdb
 TVDB_API_KEY = 'TVDB_API_KEY'
@@ -31,7 +32,7 @@ def get_watched_items(user_id):
         'GroupItems': 'false',
         'EnableImages': 'false',
         'EnableUserData': 'false',
-        'Limit': '10000',
+        'Limit': "1000000",
         'api_key': EMBY_API_KEY
     }
     response = requests.get(url, params=params)
@@ -41,8 +42,7 @@ def get_watched_items(user_id):
     else:
         print("Error fetching watched items from Emby")
         return None
-
-
+    
 def get_tmdb_id(movie_name):
     search_url = f'https://api.themoviedb.org/3/search/movie'
     params = {
@@ -169,8 +169,7 @@ def unmonitor_episodes(episode_ids):
     else:
         print(f"Error changing monitoring status: {response.status_code}, {response.text}")
 
-
-def get_movie_info(tmdb_id):
+def get_movie_info(tmdb_id, movie_name):
     url = f"{RADARR_URL}/movie/lookup/tmdb/{tmdb_id}?apikey={RADARR_API_KEY}"
     response = requests.get(url)
     if response.status_code == 200:
@@ -180,13 +179,15 @@ def get_movie_info(tmdb_id):
             # Assuming the first movie in the list is the one you want
             return movie_info[0]  
         else:
-            print("No movies found for TMDB ID:", tmdb_id)
+            print(f"No movies found for radarr for {movie_name}: {response.status_code}")
             return None
+    if response.status_code == 404:
+        print(f"{movie_name} Not found in Radarr Library")
     else:
-        print(f"Error fetching movie info for TMDB ID {tmdb_id}: {response.status_code}")
+        print(f"Error fetching movie info from radarr for {movie_name}: {response.status_code}")
         return None
     
-def fetch_movie_status(radarr_id):
+def fetch_movie_status(radarr_id, movie_name):
     """Fetch the current monitoring status of a specific movie."""
     movie_info_url = f"{RADARR_URL}/movie/{radarr_id}?apikey={RADARR_API_KEY}"
     response = requests.get(movie_info_url)
@@ -194,13 +195,13 @@ def fetch_movie_status(radarr_id):
         movie_info = response.json()
         return movie_info.get('monitored')
     else:
-        print(f"Error fetching movie info: {response.status_code}")
+        print(f"Error fetching movie status from radarr for {movie_name}: {response.status_code}")
         return None 
 
-def unmonitor_movies(radarr_id):
+def unmonitor_movies(radarr_id, movie_name):
     """Unmonitor a movie if it is currently monitored."""
     # First, check if the movie is monitored
-    if fetch_movie_status(radarr_id):
+    if fetch_movie_status(radarr_id, movie_name):
         url = f"{RADARR_URL}/movie/{radarr_id}?apikey={RADARR_API_KEY}"
         payload = {
             'monitored': False
@@ -211,21 +212,21 @@ def unmonitor_movies(radarr_id):
         }
         response = requests.put(url, json=payload, headers=headers)
         if response.status_code in [200, 202]:
-            print(f"Monitoring status updated for movie ID {radarr_id}.")
+            print(f"Monitoring status updated for {movie_name}.")
         else:
-            print(f"Error updating monitoring status for movie ID {radarr_id}: {response.status_code}, {response.text}")
+            print(f"Error updating monitoring status for {movie_name}: {response.status_code}, {response.text}")
     else:
-        print(f"Movie ID {radarr_id} is already unmonitored.")
+        print(f"{movie_name} is already unmonitored.")
 
-def delete_item(item_id):
+def delete_item(item_id, item_info):
     url = f"{EMBY_URL}/Items?{item_id}&api_key={EMBY_API_KEY}"
     response = requests.delete(url)
     if response.status_code == 204:
-        print(f"Item {item_id} deleted successfully from Emby.")
+        print(f"Item {item_info} deleted successfully from Emby.")
     else:
-        print(f"Failed to delete item {item_id} from Emby: {response.status_code}, {response.text}")
+        print(f"Failed to delete item {item_info} from Emby: {response.status_code}, {response.text}")
 
-def delete_episode_file(series_id, season_number, episode_number):
+def delete_episode_file(series_id, season_number, episode_number, episode_name, series_name):
     episodes = get_episode_info(series_id, season_number)
     episode_file_id = None
     for episode in episodes:
@@ -237,19 +238,19 @@ def delete_episode_file(series_id, season_number, episode_number):
         delete_url = f"{SONARR_URL}/episodeFile/{episode_file_id}?apikey={SONARR_API_KEY}"
         response = requests.delete(delete_url)
         if response.status_code == 200:
-            print(f"Episode file {episode_file_id} deleted successfully from Sonarr.")
+            print(f"Episode file for episode: {episode_name} from {series_name} deleted successfully from Sonarr.")
         else:
-            print(f"Failed to delete episode file {episode_file_id}: {response.status_code}, {response.text}")
+            print(f"Failed to delete episode file for episode: {episode_name} from {series_name}: {response.status_code}, {response.text}")
     else:
-        print("Episode file ID not found or episode not downloaded.")
+        print(f"Episode file not found for episode: {episode_name} from {series_name} or episode not downloaded/Previously deleted.")
 
-def delete_movie_file(radarr_id):
+def delete_movie_file(radarr_id, movie_name):
     delete_url = f"{RADARR_URL}/movie/{radarr_id}?deleteFiles=true&addImportExclusion=true&apikey={RADARR_API_KEY}"
     response = requests.delete(delete_url)
     if response.status_code == 200:
-        print(f"Movie ID {radarr_id} deleted successfully from Radarr.")
+        print(f"Movie ID {movie_name} deleted successfully from Radarr.")
     else:
-        print(f"Failed to delete movie ID {radarr_id} from Radarr: {response.status_code}, {response.text}")
+        print(f"Failed to delete movie ID {movie_name} from Radarr: {response.status_code}, {response.text}")
 
 def main():
     two_weeks_ago = datetime.utcnow() - timedelta(days=14)
@@ -258,9 +259,10 @@ def main():
         for item in watched_items:
             if item['Type'] == 'Episode' and item.get('SeriesName') not in BLACKLISTED_TV_SHOWS:
                 series_name = item['SeriesName']
+                episode_name = item['Name']
                 season_number = item['ParentIndexNumber']
-                episode_number = item['IndexNumber']
-                
+                episode_number = item['IndexNumber']  
+                item_info = f"{episode_name} from {series_name}"       
                 # Fetch TVDB ID using series name
                 tvdb_id = get_tvdb_id(series_name)
                 if tvdb_id:
@@ -272,38 +274,45 @@ def main():
                         #print(episode_info)
                         for ep in episode_info:
                             if ep['seasonNumber'] == season_number and ep['episodeNumber'] == episode_number:
+                                episode_id = ep['id']
+                                episode_ids = [episode_id]
                                 air_date_utc = datetime.strptime(ep['airDateUtc'], '%Y-%m-%dT%H:%M:%SZ')
                                 if air_date_utc < two_weeks_ago:
                                     # Unmonitor this specific episode in Sonarr
-                                    unmonitor_episodes([ep['id']])
-                                    print(f"Unmonitored episode: {ep['title']} from series: {series_name}")
-                    
-                                    #delete the episode from Emby, Sonarr and file system
-                                    delete_episode_file(series_id, season_number, episode_number)
-                                    delete_item(item['Id'])
+                                    unmonitor_episodes(episode_ids)
+                                    print(f"Unmonitored episode: {item_info}")
+                                    #delete the episode from Emby (OPTIONAL), Sonarr and file system
+                                    delete_episode_file(series_id, season_number, episode_number, episode_name, series_name)
+                                    if EMBY_DELETE:
+                                        delete_item(item['Id'], item_info)
+                                    if not EMBY_DELETE:
+                                        print(f"Emby library update handled by *Arr's skipping Emby library delete for {series_name}: {episode_name} of Season{season_number}")
                 else:
-                    print(f"TVDB ID not found for series '{series_name}'.")
-                    
+                    print(f"TVDB ID not found for series '{series_name}'.")        
 
             elif item['Type'] == 'Movie' and item.get('Name') not in BLACKLISTED_MOVIES:
+                movie_name = item['Name']
+                item_info = movie_name
                 # Use the movie name to fetch the TMDB ID directly
-                tmdb_id = get_tmdb_id(item['Name'])
+                tmdb_id = get_tmdb_id(movie_name)
                 if tmdb_id:
-                    movie_info = get_movie_info(tmdb_id)
+                    movie_info = get_movie_info(tmdb_id, movie_name)
                     if movie_info:
                         radarr_id = movie_info['id']  # Assuming the first movie is the correct one
                         # Unmonitor movies in Radarr
-                        unmonitor_movies(radarr_id,)
-                        print(f"Unmonitored movie: {item['Name']} with TMDB ID {tmdb_id}")
-                        #delete the episode from Emby, Radarr and file system
-                        delete_movie_file(radarr_id)
-                        delete_item(item['Id'])
+                        unmonitor_movies(radarr_id, movie_name)
+                        print(f"Unmonitored movie: {movie_name} with TMDB ID {tmdb_id}")
+                        #delete the episode from Emby(OPTIONAL), Radarr and file system
+                        delete_movie_file(radarr_id, movie_name)
+                        if EMBY_DELETE:
+                            delete_item(item['Id'], item_info)
+                        if not EMBY_DELETE:
+                            print(f"Emby library update handled by *Arr's skipping Emby library delete for {movie_name}")
                 else:
-                    print(f"TMDB ID not found for movie '{item['Name']}'.")
+                    print(f"TMDB ID not found for movie '{item_info}'.")
 
     else:
         print("No watched items found from Emby.")
 
 if __name__ == "__main__":
     main()
-
