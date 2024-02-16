@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 import os
 import requests
 
+##########################
+## SETTINGS
+##########################
 
 # If Aired in this time period dont delete
 # Set the number of days to the time period from show air date that you want to be blacklisted from deleting
@@ -20,6 +23,11 @@ EMBY_DELETE = False
 # Blacklisted movies and TV shows
 BLACKLISTED_MOVIES = ["Example Movie 1", "Example Movie 2"]
 BLACKLISTED_TV_SHOWS = ["Example Show 1", "Example Show 2"]
+
+##########################
+## END OF SETTINGS
+##########################
+
 
 ##########################
 ## DO NOT CHANGE THE BELOW
