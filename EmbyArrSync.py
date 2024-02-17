@@ -291,10 +291,10 @@ def main():
                                     episode_ids = [episode_id]
                                     air_date_utc = datetime.strptime(ep['airDateUtc'], '%Y-%m-%dT%H:%M:%SZ')
                                     do_not_delete = datetime.now() - timedelta(days=DAYS)
+                                    # Unmonitor this specific episode in Sonarr
+                                    unmonitor_episodes([episode_id])
+                                    print(f"Unmonitored episode: {item_info}")
                                     if air_date_utc < do_not_delete:
-                                        # Unmonitor this specific episode in Sonarr
-                                        unmonitor_episodes([episode_id])
-                                        print(f"Unmonitored episode: {item_info}")
                                         #delete the episode from Emby (OPTIONAL), Sonarr and file system
                                         delete_episode_file(series_id, season_number, episode_number, episode_name, series_name)
                                         if EMBY_DELETE:
@@ -302,7 +302,7 @@ def main():
                                         if not EMBY_DELETE:
                                             print(f"Emby library update handled by Sonarr skipping Emby library delete for {series_name}: {episode_name} of Season{season_number}")
                                     else:
-                                        print(f"{series_name}: {episode_name} is within the do_not_delete range.")
+                                        print(f"{series_name}: {episode_name} aired within the past {DAYS} days. Not Deleted")
                     else:
                         print(f"TVDB ID not found for series '{series_name}'.")        
 
@@ -324,10 +324,10 @@ def main():
                             if release_dates:  # Ensure there's at least one valid date
                                 earliest_release_date = min(release_dates)
                                 Do_not_delete = datetime.now() - timedelta(days=DAYS)
+                                # Unmonitor movies in Radarr
+                                unmonitor_movies(radarr_id, movie_name)
+                                print(f"Unmonitored movie: {movie_name} with TMDB ID {tmdb_id}")
                                 if earliest_release_date < Do_not_delete:
-                                    # Unmonitor movies in Radarr
-                                    unmonitor_movies(radarr_id, movie_name)
-                                    print(f"Unmonitored movie: {movie_name} with TMDB ID {tmdb_id}")
                                     #delete the episode from Emby(OPTIONAL), Radarr and file system
                                     delete_movie_file(radarr_id, movie_name)
                                     if EMBY_DELETE:
@@ -335,7 +335,7 @@ def main():
                                     if not EMBY_DELETE:
                                         print(f"Emby library update handled by Sonarr skipping Emby library delete for {movie_name}")
                                 else:
-                                    print(f"Not eligible for unmonitor/delete: {movie_name}")
+                                    print(f"{movie_name} aired within the past {DAYS} days. Not Deleted")
                             else:
                                 print(f"No valid release dates available for comparison: {movie_name}")
                     else:
