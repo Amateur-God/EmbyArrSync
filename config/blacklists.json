@@ -1,0 +1,14 @@
+{
+    "BLACKLISTED_MOVIES": [
+      "Example Movie 1",
+      "Example Movie 2",
+      "Example Movie 3"
+    ],
+    "BLACKLISTED_TV_SHOWS": [
+      "Example TV Show 1",
+      "Example TV Show 2",
+      "Example TV Show 3",
+      "Example TV Show 4"
+    ]
+  }
+  

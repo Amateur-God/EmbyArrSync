@@ -6,7 +6,7 @@ You can also blacklist movies and TV shows for the script to ignore
 
 ## Setup
 
-### Step 1 - Install Python and Requirements
+### Step 1 - Install Python
 
 Make sure you have Python 3.10 or higher installed:
 
@@ -69,44 +69,52 @@ RADARR_URL = 'http://IP:PORT/api/v3'
 EMBY_API_KEY = 'EMBY_API_KEY'
 EMBY_URL = 'http://IP:PORT/emby'
 EMBY_USER_ID = 'EMBY_USER_ID'
+##Currently set to the highest number this is the maximum number of watched items to fetch from emby, change this if you only want to get the last X watched items
+LIMIT = 1000000000 
+# boolean value (True/False) Set to true if you want the script to handle deleting from emby library, 
+# set to false if you are using the Sonarr/Radarr connect functions to handle emby library updates
+EMBY_DELETE = False 
 
 #tvdb/tmdb
 TVDB_API_KEY = 'TVDB_API_KEY'
 TVDB_PIN = 'THIS CAN BE ANY STRING OF NUMBERS YOU WANT'
 TMDB_API_KEY = 'TMDB_API_KEY'
-```
 
-#### Edit Script Settings
-Open EmbyArrSync.py with your prefered text editor and and edit the following Settings that can be found at the top of the file
-
-Note if you want the sonarr/Radarr connection to handle updating emby library set `EMBY_DELETE = False` Otherwise set `EMBY_DELETE = True`
-
-please read the commented out notes for more details
-
-```
-sudo nano /opt/EmbyArrSync/EmbyArrSync.py
-```
-
-```
 # If Aired in this time period dont delete
 # Set the number of days to the time period from show air date that you want to be blacklisted from deleting
-# this will accept either a whole number or a calculation like "30 * 6" // Where 30 is number of days and 6 is months to aproximate 6 months, so this wouldnt delete anything that aired 6 months ago
-# See below examples
-# DAYS = 14 ## 14 days
-# DAYS = 30 * 6 ## Aprox 6 months or 180 Days
+# Needs to be a whole number (do not use calculations)
 
 DAYS = 14
-
-# boolean value (True/False) Set to true if you want the script to handle deleting from emby library, 
-# set to false if you are using the Sonarr/Radarr connect functions to handle emby library updates
-EMBY_DELETE = False 
-
-# Blacklisted movies and TV shows
-BLACKLISTED_MOVIES = ["Example Movie 1", "Example Movie 2"]
-BLACKLISTED_TV_SHOWS = ["Example Show 1", "Example Show 2"]
 ```
 
-#### linux
+#### Blacklist Tv shows and Movies
+
+Open blacklists.json in the config Folder with your prefered text editor and Replace the placeholders with the correct variables, or delete the examples to make an empty list if you dont want to blacklist any shows
+
+if installed in its own folder in /opt
+
+```
+sudo nano /opt/EmbyArrSync/config/blacklists.json
+```
+
+```json
+{
+    "BLACKLISTED_MOVIES": [
+      "Example Movie 1",
+      "Example Movie 2",
+      "Example Movie 3"
+    ],
+    "BLACKLISTED_TV_SHOWS": [
+      "Example TV Show 1",
+      "Example TV Show 2",
+      "Example TV Show 3",
+      "Example TV Show 4"
+    ]
+  }
+  
+```
+
+#### Run on linux
 
 This assumes you moved the script file to its own folder in opt
 
@@ -122,7 +130,7 @@ cd /opt/EmbyArrSync
 python3 ./EmbyArrSync
 ```
 
-### Step 4 - Otional Setup (Auto run via systemd)
+### Step 4 - Optional Setup (Auto run via systemd)
 
 This isnt the only way to set it up to autorun its just my prefered method you can also set a cron job up to run it on a set schedule
 
@@ -142,6 +150,7 @@ Description=EmbyArrSync
 After=multi-user.target
 [Service]
 Type=simple
+User=#USER#
 ExecStart=/bin/bash -c 'cd /opt/EmbyArrSync/ && python3 EmbyArrSync.py'
 [Install]
 WantedBy=multi-user.target
