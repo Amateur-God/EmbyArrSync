@@ -52,6 +52,7 @@ def get_watched_items(user_id):
         'GroupItems': 'false',
         'EnableImages': 'false',
         'EnableUserData': 'false',
+        'Fields': 'Path',
         'Limit': LIMIT,
         'api_key': EMBY_API_KEY
     }
