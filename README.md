@@ -46,6 +46,10 @@ https://thetvdb.com/dashboard/account/apikey
 
 https://www.themoviedb.org/settings/api
 
+#### Get a Emby User ID
+
+Login to Emby, go to Dashboard and then to users, select the user you want the script to run for and then in the url get the userId=XXXXXXXXXXXXXXXXXX and place the X's in the EMBY_USER_ID
+
 #### Edit Env Variables
 
 Open EmbyArrSync.env in the config Folder with your prefered text editor and Replace the placeholders with the correct variables
@@ -57,6 +61,13 @@ sudo nano /opt/EmbyArrSync/config/EmbyArrSync.env
 ```
 
 ```py
+# TV and Movie Handling Logic
+HANDLE_TV = True # Set to false to disable the script from touching TV shows
+HANDLE_MOVIES = True # Set to false to disable the script from touching Movies shows
+TV_DELETE = True # Set to false to disable the script from Deleting TV shows
+MOVIE_DELETE = True # Set to false to disable the script from Deleting Movies shows
+
+
 # Sonarr API details
 SONARR_API_KEY = 'SONARR_API_KEY'
 SONARR_URL = 'http://IP:PORT/api/v3'
@@ -68,8 +79,8 @@ RADARR_URL = 'http://IP:PORT/api/v3'
 # Emby API details
 EMBY_API_KEY = 'EMBY_API_KEY'
 EMBY_URL = 'http://IP:PORT/emby'
-EMBY_USER_ID = 'EMBY_USER_ID'
-##Currently set to the highest number this is the maximum number of watched items to fetch from emby, change this if you only want to get the last X watched items
+EMBY_USER_ID = 'EMBY_USER_ID' # This is the UID for a user not username get this from the user= section of the URL when you click on a user in the users tab of the dashboard
+#  Currently set to the highest number this is the maximum number of watched items to fetch from emby, change this if you only want to get the last X watched items
 LIMIT = 1000000000 
 # boolean value (True/False) Set to true if you want the script to handle deleting from emby library, 
 # set to false if you are using the Sonarr/Radarr connect functions to handle emby library updates
@@ -82,7 +93,6 @@ TMDB_API_KEY = 'TMDB_API_KEY'
 
 # If Aired in this time period dont delete
 # Set the number of days to the time period from show air date that you want to be blacklisted from deleting
-# Needs to be a whole number (do not use calculations)
 
 DAYS = 14
 ```
@@ -109,6 +119,10 @@ sudo nano /opt/EmbyArrSync/config/blacklists.json
       "Example TV Show 2",
       "Example TV Show 3",
       "Example TV Show 4"
+    ],
+    "BLACKLISTED_PATHS": [
+      "/a/path/to/blacklist",
+      "/another/path/to/blacklist"
     ]
   }
   
