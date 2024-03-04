@@ -9,6 +9,10 @@
       "Example TV Show 2",
       "Example TV Show 3",
       "Example TV Show 4"
+    ],
+    "BLACKLISTED_PATHS": [
+      "/a/path/to/blacklist",
+      "/another/path/to/blacklist"
     ]
   }
   

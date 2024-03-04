@@ -14,25 +14,35 @@ import json
 env_file = 'config/EmbyArrSync.env'
 load_dotenv(dotenv_path=env_file)
 
+HANDLE_TV = os.getenv('HANDLE_TV', 'False') == 'True'
+HANDLE_MOVIES = os.getenv('HANDLE_MOVIES', 'False') == 'True'
+TV_DELETE = os.getenv('TV_DELETE', 'False') == 'True'
+MOVIE_DELETE = os.getenv('MOVIE_DELETE', 'False') == 'True'
+
 SONARR_API_KEY = os.getenv('SONARR_API_KEY')
 SONARR_URL = os.getenv('SONARR_URL')
+
 RADARR_API_KEY = os.getenv('RADARR_API_KEY')
 RADARR_URL = os.getenv('RADARR_URL')
+
 EMBY_API_KEY = os.getenv('EMBY_API_KEY')
 EMBY_URL = os.getenv('EMBY_URL')
 EMBY_USER_ID = os.getenv('EMBY_USER_ID')
+EMBY_DELETE = os.getenv('EMBY_DELETE', 'False') == 'True'  # Convert string to boolean
+LIMIT = int(os.getenv('LIMIT', '1000000000'))
+
 TVDB_API_KEY = os.getenv('TVDB_API_KEY')
 TVDB_PIN = os.getenv('TVDB_PIN')
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
+
 DAYS = int(os.getenv('DAYS', 14))  # Default to 14 if not defined
-EMBY_DELETE = os.getenv('EMBY_DELETE', 'False') == 'True'  # Convert string to boolean
-LIMIT = int(os.getenv('LIMIT', '1000000000'))
 # Load blacklists from JSON file
 with open('config/blacklists.json', 'r') as file:
     blacklists = json.load(file)
 
 BLACKLISTED_TV_SHOWS = blacklists.get('BLACKLISTED_TV_SHOWS', [])
 BLACKLISTED_MOVIES = blacklists.get('BLACKLISTED_MOVIES', [])
+BLACKLISTED_PATHS = blacklists.get('BLACKLISTED_PATHS', []) 
 
 def get_watched_items(user_id):
     url = f"{EMBY_URL}/Users/{user_id}/Items/Latest"
@@ -263,52 +273,62 @@ def delete_movie_file(radarr_id, movie_name):
         print(f"Failed to delete movie ID {movie_name} from Radarr: {response.status_code}, {response.text}")
 
 def main():
+    # Check and print the status of HANDLE_TV and HANDLE_MOVIES at the start
+    if not HANDLE_TV:
+        print("Handling of TV shows is disabled, Skipping to Movies.")
+    if not HANDLE_MOVIES:
+        print("Handling of movies is disabled, Ending script.")
     watched_items = get_watched_items(EMBY_USER_ID)
     if watched_items:
         for item in watched_items:
-            if item['Type'] == 'Episode':
+            if item['Type'] == 'Episode' and HANDLE_TV:
                 series_name = item['SeriesName']
                 episode_name = item['Name']
                 season_number = item['ParentIndexNumber']
                 episode_number = item['IndexNumber']  
                 item_info = f"{episode_name} from {series_name}" 
+                if any(blacklisted_path in item['Path'] for blacklisted_path in BLACKLISTED_PATHS):
+                    print(f"Skipping item in blacklisted path: {item['Name']}")
+                    continue
                 if series_name in BLACKLISTED_TV_SHOWS:
                     print(f"Skipping blacklisted show: {series_name}")
                     continue  # Skip this iteration if the show is blacklisted
-                elif series_name not in BLACKLISTED_TV_SHOWS:
                     # Fetch TVDB ID using series name
-                    tvdb_id = get_tvdb_id(series_name)
-                    if tvdb_id:
-                        # Fetch Sonarr series ID using TVDB ID
-                        series_id = get_series_id_by_tvdb(tvdb_id)
-                        if series_id:
-                            # Fetch episode info from Sonarr to get episode ID
-                            episode_info = get_episode_info(series_id, season_number)
-                            #print(episode_info)
-                            for ep in episode_info:
-                                if ep['seasonNumber'] == season_number and ep['episodeNumber'] == episode_number:
-                                    episode_id = ep['id']
-                                    episode_ids = [episode_id]
-                                    air_date_utc = datetime.strptime(ep['airDateUtc'], '%Y-%m-%dT%H:%M:%SZ')
-                                    do_not_delete = datetime.now() - timedelta(days=DAYS)
-                                    # Unmonitor this specific episode in Sonarr
-                                    unmonitor_episodes([episode_id])
-                                    print(f"Unmonitored episode: {item_info}")
-                                    if air_date_utc < do_not_delete:
-                                        #delete the episode from Emby (OPTIONAL), Sonarr and file system
-                                        delete_episode_file(series_id, season_number, episode_number, episode_name, series_name)
-                                        if EMBY_DELETE:
-                                            delete_item(item['Id'], item_info)
-                                        if not EMBY_DELETE:
-                                            print(f"Emby library update handled by Sonarr skipping Emby library delete for {series_name}: {episode_name} of Season{season_number}")
-                                    else:
-                                        print(f"{series_name}: {episode_name} aired within the past {DAYS} days. Not Deleted")
-                    else:
-                        print(f"TVDB ID not found for series '{series_name}'.")        
+                tvdb_id = get_tvdb_id(series_name)
+                if tvdb_id:
+                    # Fetch Sonarr series ID using TVDB ID
+                    series_id = get_series_id_by_tvdb(tvdb_id)
+                    if series_id:
+                        # Fetch episode info from Sonarr to get episode ID
+                        episode_info = get_episode_info(series_id, season_number)
+                        #print(episode_info)
+                        for ep in episode_info:
+                            if ep['seasonNumber'] == season_number and ep['episodeNumber'] == episode_number:
+                                episode_id = ep['id']
+                                episode_ids = [episode_id]
+                                air_date_utc = datetime.strptime(ep['airDateUtc'], '%Y-%m-%dT%H:%M:%SZ')
+                                do_not_delete = datetime.now() - timedelta(days=DAYS)
+                                # Unmonitor this specific episode in Sonarr
+                                unmonitor_episodes([episode_id])
+                                print(f"Unmonitored episode: {item_info}")
+                                if air_date_utc < do_not_delete and TV_DELETE:
+                                    #delete the episode from Emby (OPTIONAL), Sonarr and file system
+                                    delete_episode_file(series_id, season_number, episode_number, episode_name, series_name)
+                                    if EMBY_DELETE:
+                                        delete_item(item['Id'], item_info)
+                                    if not EMBY_DELETE:
+                                        print(f"Emby library update handled by Sonarr skipping Emby library delete for {series_name}: {episode_name} of Season{season_number}")
+                                else:
+                                    print(f"{series_name}: {episode_name} aired within the past {DAYS} days. Not Deleted")
+                else:
+                    print(f"TVDB ID not found for series '{series_name}'.")
 
-            elif item['Type'] == 'Movie':
+            elif item['Type'] == 'Movie' and HANDLE_MOVIES:
                 movie_name = item['Name']
                 item_info = movie_name
+                if any(blacklisted_path in item['Path'] for blacklisted_path in BLACKLISTED_PATHS):
+                    print(f"Skipping item in blacklisted path: {item['Name']}")
+                    continue
                 if movie_name in BLACKLISTED_MOVIES:
                     print(f"Skipping blacklisted Movie: {movie_name}")
                     continue  # Skip this iteration if the Movie is blacklisted
@@ -327,7 +347,7 @@ def main():
                                 # Unmonitor movies in Radarr
                                 unmonitor_movies(radarr_id, movie_name)
                                 print(f"Unmonitored movie: {movie_name} with TMDB ID {tmdb_id}")
-                                if earliest_release_date < Do_not_delete:
+                                if earliest_release_date < Do_not_delete and MOVIE_DELETE:
                                     #delete the episode from Emby(OPTIONAL), Radarr and file system
                                     delete_movie_file(radarr_id, movie_name)
                                     if EMBY_DELETE:
