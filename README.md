@@ -1,8 +1,8 @@
 # EmbyArrSync
 
-EmbyArrSync is a python script to automate the process of unmonitoring watched episodes and movies in Sonarr and Radarr and removing them from your library and file system, at default the script will only run on episodes that are older than 2 weeks/14 days, however you can configure this in the scripts settings area
+EmbyArrSync is a python script to automate the process of unmonitoring watched episodes and movies in Sonarr and Radarr and removing them from your library and file system, at default the script will only run on episodes/Movies that are older than 2 weeks/14 days, however you can configure this in the env variables.
 
-You can also blacklist movies and TV shows for the script to ignore
+You can also blacklist movies, TV shows and paths for the script to ignore
 
 ## Setup
 
