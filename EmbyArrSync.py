@@ -295,37 +295,41 @@ def delete_movie_file(radarr_id, movie_name):
         print(f"Failed to delete movie ID {movie_name} from Radarr: {response.status_code}, {response.text}")
 
 def main():
-    # Check and print the status of HANDLE_TV and HANDLE_MOVIES at the start
-    if not HANDLE_TV:
-        print("Handling of TV shows is disabled, Skipping to Movies.")
-    if not HANDLE_MOVIES:
-        print("Handling of movies is disabled, Ending script.")
+    # Update Blacklist with Favourites at start based on Env Variables
     watched_series = get_series_info(EMBY_USER_ID)
     if watched_series:
         for item in watched_series:
-            if item['UserData']['IsFavorite']:
-                print(f"favorite item: {item['Name']} and adding {item['Path']} to blacklisted paths")
+            if item['UserData']['IsFavorite'] and item['Type'] == 'Series' and HANDLE_TV:
+                print(f"Favorite Series: {item['Name']} and adding {item['Path']} to blacklisted paths")
+                BLACKLISTED_PATHS.append(item['Path'])  # Add the path to blacklisted paths
+            elif item['UserData']['IsFavorite'] and item['Type'] == 'Movie' and HANDLE_MOVIES:
+                print(f"Favorite Movie: {item['Name']} and adding {item['Path']} to blacklisted paths")
                 BLACKLISTED_PATHS.append(item['Path'])  # Add the path to blacklisted paths
                 continue
+    # Print statement for Handle TV = False
+    if not HANDLE_TV:
+        print("Handling of TV shows is disabled, Skipping to Movies.")
+    # Logic for hadnling everything and calling the rest of the funcions
+    #Gets list of watched items from emby
     watched_items = get_watched_items(EMBY_USER_ID)
-    if watched_items:
-        for item in watched_items:
-            if item['Type'] == 'Episode' and HANDLE_TV:
+    if watched_items:   # only acts on results from emby in watched items
+        for item in watched_items:         #Loops through each item in watched items and applies the following logic
+            if item['Type'] == 'Episode' and HANDLE_TV: #Checks if item type is an episode and if handle TV = True
                 series_name = item['SeriesName']
                 episode_name = item['Name']
                 season_number = item['ParentIndexNumber']
                 episode_number = item['IndexNumber']  
                 item_info = f"{episode_name} from {series_name}"
-                if item['UserData']['IsFavorite']:
+                if item['UserData']['IsFavorite']: #Checks if episode is favourited in emby
                     print(f"Skipping favourite item: {item['Name']}")
                     continue
-                if any(blacklisted_path in item['Path'] for blacklisted_path in BLACKLISTED_PATHS):
+                if any(blacklisted_path in item['Path'] for blacklisted_path in BLACKLISTED_PATHS): # Checks if file path is in blacklisted Path
                     print(f"Skipping item in blacklisted path: {item['Name']}")
                     continue
-                if series_name in BLACKLISTED_TV_SHOWS:
+                if series_name in BLACKLISTED_TV_SHOWS: # Checks if series name is blacklisted
                     print(f"Skipping blacklisted show: {series_name}")
                     continue  # Skip this iteration if the show is blacklisted
-                    # Fetch TVDB ID using series name
+                # Fetch TVDB ID using series name
                 tvdb_id = get_tvdb_id(series_name)
                 if tvdb_id:
                     # Fetch Sonarr series ID using TVDB ID
@@ -395,9 +399,10 @@ def main():
                                 print(f"No valid release dates available for comparison: {movie_name}")
                     else:
                         print(f"TMDB ID not found for movie '{item_info}'.")
-
     else:
         print("No watched items found from Emby.")
+    if not HANDLE_MOVIES:
+        print("Handling of movies is disabled, Ending script.")
 
 if __name__ == "__main__":
     main()
