@@ -44,6 +44,27 @@ BLACKLISTED_TV_SHOWS = blacklists.get('BLACKLISTED_TV_SHOWS', [])
 BLACKLISTED_MOVIES = blacklists.get('BLACKLISTED_MOVIES', [])
 BLACKLISTED_PATHS = blacklists.get('BLACKLISTED_PATHS', []) 
 
+
+def get_series_info(user_id):
+    url = f"{EMBY_URL}/Users/{user_id}/Items/Latest"
+    params = {
+        'IsFolder': 'false',
+        'IsPlayed': 'true',
+        'GroupItems': 'true',
+        'EnableImages': 'false',
+        'EnableUserData': 'true',
+        'Fields': 'Path',
+        'Limit': LIMIT,
+        'api_key': EMBY_API_KEY
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        watched_items = response.json()
+        return watched_items
+    else:
+        print(f"Error fetching series info from Emby: {response.status_code}, {response.text}")
+        return None
+    
 def get_watched_items(user_id):
     url = f"{EMBY_URL}/Users/{user_id}/Items/Latest"
     params = {
@@ -51,7 +72,7 @@ def get_watched_items(user_id):
         'IsPlayed': 'true',
         'GroupItems': 'false',
         'EnableImages': 'false',
-        'EnableUserData': 'false',
+        'EnableUserData': 'true',
         'Fields': 'Path',
         'Limit': LIMIT,
         'api_key': EMBY_API_KEY
@@ -279,6 +300,13 @@ def main():
         print("Handling of TV shows is disabled, Skipping to Movies.")
     if not HANDLE_MOVIES:
         print("Handling of movies is disabled, Ending script.")
+    watched_series = get_series_info(EMBY_USER_ID)
+    if watched_series:
+        for item in watched_series:
+            if item['UserData']['IsFavorite']:
+                print(f"favorite item: {item['Name']} and adding {item['Path']} to blacklisted paths")
+                BLACKLISTED_PATHS.append(item['Path'])  # Add the path to blacklisted paths
+                continue
     watched_items = get_watched_items(EMBY_USER_ID)
     if watched_items:
         for item in watched_items:
@@ -287,7 +315,10 @@ def main():
                 episode_name = item['Name']
                 season_number = item['ParentIndexNumber']
                 episode_number = item['IndexNumber']  
-                item_info = f"{episode_name} from {series_name}" 
+                item_info = f"{episode_name} from {series_name}"
+                if item['UserData']['IsFavorite']:
+                    print(f"Skipping favourite item: {item['Name']}")
+                    continue
                 if any(blacklisted_path in item['Path'] for blacklisted_path in BLACKLISTED_PATHS):
                     print(f"Skipping item in blacklisted path: {item['Name']}")
                     continue
@@ -327,6 +358,9 @@ def main():
             elif item['Type'] == 'Movie' and HANDLE_MOVIES:
                 movie_name = item['Name']
                 item_info = movie_name
+                if item['UserData']['IsFavorite']:
+                    print(f"Skipping favourite item: {item['Name']}")
+                    continue
                 if any(blacklisted_path in item['Path'] for blacklisted_path in BLACKLISTED_PATHS):
                     print(f"Skipping item in blacklisted path: {item['Name']}")
                     continue
@@ -343,10 +377,10 @@ def main():
                             release_dates = [movie_info.get('inCinemas'), movie_info.get('physicalRelease'), movie_info.get('digitalRelease')]
                             release_dates = [datetime.strptime(date, '%Y-%m-%dT%H:%M:%SZ') for date in release_dates if date is not None]
                             if release_dates:  # Ensure there's at least one valid date
-                                earliest_release_date = min(release_dates)
+                                earliest_release_date = min(release_dates) if release_dates else None
                                 Do_not_delete = datetime.now() - timedelta(days=DAYS)
                                 # Unmonitor movies in Radarr
-                                unmonitor_movies(radarr_id, movie_name)
+                                unmonitor_movies(radarr_id, movie_name) 
                                 print(f"Unmonitored movie: {movie_name} with TMDB ID {tmdb_id}")
                                 if earliest_release_date < Do_not_delete and MOVIE_DELETE:
                                     #delete the episode from Emby(OPTIONAL), Radarr and file system
