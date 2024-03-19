@@ -9,11 +9,13 @@ from dotenv import load_dotenv
 import os
 import requests
 import json
+import re 
 
 # Load environment variables from .env file
 env_file = 'config/EmbyArrSync.env'
 load_dotenv(dotenv_path=env_file)
 
+IGNORE_FAVOURITES = os.getenv('IGNORE_FAVOURITES', 'False') == 'True'
 HANDLE_TV = os.getenv('HANDLE_TV', 'False') == 'True'
 HANDLE_MOVIES = os.getenv('HANDLE_MOVIES', 'False') == 'True'
 TV_DELETE = os.getenv('TV_DELETE', 'False') == 'True'
@@ -85,7 +87,12 @@ def get_watched_items(user_id):
         print(f"Error fetching watched items from Emby: {response.status_code}, {response.text}")
         return None
     
-def get_tmdb_id(movie_name):
+def get_tmdb_id(movie_name, movie_path):
+    # Try to extract TMDBID from the path
+    match = re.search(r'tmdbid-(\d+)', movie_path)
+    if match:
+        return match.group(1) # Returns the first matching group (the ID)
+    # If the ID is not found in the path, proceed to search via the API
     search_url = f'https://api.themoviedb.org/3/search/movie'
     params = {
         'api_key': TMDB_API_KEY,
@@ -120,7 +127,12 @@ def get_tvdb_token():
 
 TVDB_TOKEN = get_tvdb_token()
 
-def get_tvdb_id(series_name):
+def get_tvdb_id(series_name, series_path):
+    # Try to extract TVDBID from the path
+    match = re.search(r'tvdbid-(\d+)', series_path)
+    if match:
+        return match.group(1)  # Returns the first matching group (the ID)
+    # If the ID is not found in the path, proceed to search via the API
     search_url = f"https://api4.thetvdb.com/v4/search?query={series_name}"
     headers = {
         'Authorization': f'Bearer {TVDB_TOKEN}',
@@ -297,7 +309,7 @@ def delete_movie_file(radarr_id, movie_name):
 def main():
     # Update Blacklist with Favourites at start based on Env Variables
     watched_series = get_series_info(EMBY_USER_ID)
-    if watched_series:
+    if watched_series and IGNORE_FAVOURITES:
         for item in watched_series:
             if item['UserData']['IsFavorite'] and item['Type'] == 'Series' and HANDLE_TV:
                 BLACKLISTED_PATHS.append(item['Path'])  # Add the path to blacklisted paths (should capture everything)
@@ -334,7 +346,7 @@ def main():
                     print(f"Skipping blacklisted show: {series_name}")
                     continue  # Skip this iteration if the show is blacklisted
                 # Fetch TVDB ID using series name
-                tvdb_id = get_tvdb_id(series_name)
+                tvdb_id = get_tvdb_id(series_name, item['Path'])
                 if tvdb_id:
                     # Fetch Sonarr series ID using TVDB ID
                     series_id = get_series_id_by_tvdb(tvdb_id)
@@ -377,7 +389,7 @@ def main():
                     continue  # Skip this iteration if the Movie is blacklisted
                 elif movie_name not in BLACKLISTED_MOVIES:
                     # Use the movie name to fetch the TMDB ID directly
-                    tmdb_id = get_tmdb_id(movie_name)
+                    tmdb_id = get_tmdb_id(movie_name, item['Path'])
                     if tmdb_id:
                         movie_info = get_movie_info(tmdb_id, movie_name)
                         if movie_info:
