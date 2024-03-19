@@ -56,6 +56,8 @@ Open EmbyArrSync.env in the config Folder with your prefered text editor and Rep
 
 Warning setting "IGNORE_FAVOURITES" to False means the script will run on items that are favourited in emby, Setting to true means items Favourited in emby will be blacklisted and ignored by the script
 
+It is reccomended to lower the limit after first run, this limit is just as high as possible so that first run gets as many watched shows as possible.
+
 if installed in its own folder in /opt
 
 ```
