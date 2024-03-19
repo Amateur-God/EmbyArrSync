@@ -322,6 +322,8 @@ def main():
                 BLACKLISTED_MOVIES.append(item['Name'])  # Add the Name to blacklisted Movies (Fall back for if path misses something)
                 print(f"Favorite Series: {item['Name']} and adding to blacklisted TV Shows")
                 continue
+    if not IGNORE_FAVOURITES:
+        print("Ignore Favourites set to false, WARNING FAVOURITES WILL BE HANDLED BY THE SCRIPT.")
     # Print statement for Handle TV = False
     if not HANDLE_TV:
         print("Handling of TV shows is disabled, Skipping to Movies.")
