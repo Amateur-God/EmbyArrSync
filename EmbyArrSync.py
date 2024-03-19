@@ -300,11 +300,15 @@ def main():
     if watched_series:
         for item in watched_series:
             if item['UserData']['IsFavorite'] and item['Type'] == 'Series' and HANDLE_TV:
+                BLACKLISTED_PATHS.append(item['Path'])  # Add the path to blacklisted paths (should capture everything)
                 print(f"Favorite Series: {item['Name']} and adding {item['Path']} to blacklisted paths")
-                BLACKLISTED_PATHS.append(item['Path'])  # Add the path to blacklisted paths
+                BLACKLISTED_TV_SHOWS.append(item['Name'])  # Add the Name to blacklisted Movies (Fall back for if path misses something)
+                print(f"Favorite Series: {item['Name']} and adding to blacklisted TV Shows")
             elif item['UserData']['IsFavorite'] and item['Type'] == 'Movie' and HANDLE_MOVIES:
+                BLACKLISTED_PATHS.append(item['Path'])  # Add the path to blacklisted paths (should capture everything)
                 print(f"Favorite Movie: {item['Name']} and adding {item['Path']} to blacklisted paths")
-                BLACKLISTED_PATHS.append(item['Path'])  # Add the path to blacklisted paths
+                BLACKLISTED_MOVIES.append(item['Name'])  # Add the Name to blacklisted Movies (Fall back for if path misses something)
+                print(f"Favorite Series: {item['Name']} and adding to blacklisted TV Shows")
                 continue
     # Print statement for Handle TV = False
     if not HANDLE_TV:
