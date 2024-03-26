@@ -54,6 +54,10 @@ Login to Emby, go to Dashboard and then to users, select the user you want the s
 
 Open EmbyArrSync.env in the config Folder with your prefered text editor and Replace the placeholders with the correct variables
 
+Warning setting "IGNORE_FAVOURITES" to False means the script will run on items that are favourited in emby, Setting to true means items Favourited in emby will be blacklisted and ignored by the script
+
+It is reccomended to lower the limit after first run, this limit is just as high as possible so that first run gets as many watched shows as possible.
+
 if installed in its own folder in /opt
 
 ```
@@ -66,6 +70,7 @@ HANDLE_TV = True # Set to false to disable the script from touching TV shows
 HANDLE_MOVIES = True # Set to false to disable the script from touching Movies shows
 TV_DELETE = True # Set to false to disable the script from Deleting TV shows
 MOVIE_DELETE = True # Set to false to disable the script from Deleting Movies shows
+IGNORE_FAVOURITES = True # Set to True if you want the script to ignore items that are marked as favourites in emby (Not Unmonitor and Not Delete)
 
 
 # Sonarr API details
