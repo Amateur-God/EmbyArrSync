@@ -146,7 +146,7 @@ cd /opt/EmbyArrSync
 ```
 
 ```bash
-python3 ./EmbyArrSync
+python3 EmbyArrSync.py
 ```
 
 ### Step 4 - Optional Setup (Auto run via systemd)
