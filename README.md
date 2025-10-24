@@ -4,6 +4,14 @@ EmbyArrSync is a Python script designed to automate the management of watched ep
 
 The script includes options to exclude specific movies, TV shows, and directories through a blacklist feature. Users can configure various options via environment variables, including whether to delete content in Emby, Sonarr, or Radarr, and whether to skip deletion for content marked as a favorite in Emby. Additionally, there are environment variables available to disable handling either movies or TV shows entirely, providing further customization to meet specific needs.
 
+> [!NOTE]
+> **Enjoying this integration?**
+>
+> This is an open-source project I maintain in my spare time. If you'd like to show your appreciation and support its development, you can buy me a coffee!
+>
+> [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/amateurgod)
+
+
 ## Setup
 
 ### Step 1 - Install Python
