@@ -62,7 +62,16 @@ Login to Emby, go to Dashboard and then to users, select the user you want the s
 
 #### Edit Env Variables
 
-Open EmbyArrSync.env in the config Folder with your prefered text editor and Replace the placeholders with the correct variables
+copy EmbyArrSync.env.example to EmbyArrSync.env in the config Folder then open it with your prefered text editor and Replace the placeholders with the correct variables
+
+e.g.
+```bash
+cd /opt/EmbyArrSync
+
+cp config/EmbyArrSync.env.example config/EmbyArrSync.env
+
+nano config/EmbyArrSync.env
+```
 
 Warning setting "IGNORE_FAVOURITES" to False means the script will run on items that are favourited in emby, Setting to true means items Favourited in emby will be blacklisted and ignored by the script
 
