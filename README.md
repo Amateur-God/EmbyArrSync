@@ -48,7 +48,7 @@ source venv/bin/activate
 pip install --upgrade pip
 
 # Install project requirements
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 
@@ -253,3 +253,4 @@ If you make improvements, please submit them for review.
 **Enjoy!**  
 If you like this tool, consider supporting further development:  
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/amateurgod)
+
