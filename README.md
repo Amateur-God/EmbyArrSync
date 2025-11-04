@@ -4,6 +4,14 @@ EmbyArrSync is a Python script designed to automate the management of watched ep
 
 The script includes options to exclude specific movies, TV shows, and directories through a blacklist feature. Users can configure various options via environment variables, including whether to delete content in Emby, Sonarr, or Radarr, and whether to skip deletion for content marked as a favorite in Emby. Additionally, there are environment variables available to disable handling either movies or TV shows entirely, providing further customization to meet specific needs.
 
+> [!NOTE]
+> **Enjoying this integration?**
+>
+> This is an open-source project I maintain in my spare time. If you'd like to show your appreciation and support its development, you can buy me a coffee!
+>
+> [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/amateurgod)
+
+
 ## Setup
 
 ### Step 1 - Install Python
@@ -11,7 +19,7 @@ The script includes options to exclude specific movies, TV shows, and directorie
 Make sure you have Python 3.10 or higher installed:
 
 ```
-sudo apt install python3
+sudo apt install python3 python3-venv
 ```
 
 ### Step 2 - Download Project Files
@@ -26,21 +34,23 @@ I reccomend extracting the files into its own directory in opt like "/opt/EmbyAr
 
 #### Install requirements
 
-navigate to the directory where you have the script
-
-if in reccomended directory
-
-```
+```bash
+# Go to your folder (adjust for your actual path)
 cd /opt/EmbyArrSync
+
+# Create a virtual environment named 'venv'
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Upgrade pip (recommended)
+pip install --upgrade pip
+
+# Install project requirements
+pip install requirements.txt
 ```
 
-```
-pip install -r requirements.txt
-```
-
-#### Get a TVDB API Key
-
-https://thetvdb.com/dashboard/account/apikey
 
 #### Get a TMDB API key
 
@@ -91,9 +101,7 @@ LIMIT = 1000000000
 # set to false if you are using the Sonarr/Radarr connect functions to handle emby library updates
 EMBY_DELETE = False 
 
-#tvdb/tmdb
-TVDB_API_KEY = 'TVDB_API_KEY'
-TVDB_PIN = 'THIS CAN BE ANY STRING OF NUMBERS YOU WANT'
+#tmdb
 TMDB_API_KEY = 'TMDB_API_KEY'
 
 # If Aired in this time period dont delete
@@ -160,17 +168,20 @@ replacing nano with your preferred text editor
 sudo nano /etc/systemd/system/EmbyArrSync.service
 ```
 
-Paste the contents of the following into the new file
-replacing the `/opt/EmbyArrSync/` and `#USER#` with the correct ones for your install
+Paste the following, replacing `/opt/EmbyArrSync/` and `#USER#` as needed.  
+**NOTE:** If using venv, you must activate it in the `ExecStart` line:
 
-```bash
+```ini
 [Unit]
 Description=EmbyArrSync
 After=multi-user.target
+
 [Service]
 Type=simple
 User=#USER#
-ExecStart=/bin/bash -c 'cd /opt/EmbyArrSync/ && python3 EmbyArrSync.py'
+WorkingDirectory=/opt/EmbyArrSync
+ExecStart=/bin/bash -c 'source /opt/EmbyArrSync/venv/bin/activate && python3 EmbyArrSync.py'
+
 [Install]
 WantedBy=multi-user.target
 ```
@@ -179,13 +190,13 @@ WantedBy=multi-user.target
 sudo nano /etc/systemd/system/EmbyArrSync.timer
 ```
 
-```bash
+```ini
 [Unit]
 Description= Run EmbyArrSync Periodically
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=120min #Change to how often you want the script to run
+OnUnitActiveSec=120min   # Change as needed for run frequency
 
 [Install]
 WantedBy=timers.target
@@ -212,3 +223,24 @@ sudo systemctl status EmbyArrSync.timer
 ```bash
 sudo systemctl enable EmbyArrSync.timer
 ```
+
+---
+
+## Troubleshooting
+
+- If you get a `ModuleNotFoundError` for any package, ensure your virtual environment is activated (`source venv/bin/activate`).
+- If permissions are denied, check file and folder ownership.
+- With systemd, always specify the full path for your venv activation if running as a different user.
+
+---
+
+## Contributing
+
+PRs and issues are welcome!  
+If you make improvements, please submit them for review.
+
+---
+
+**Enjoy!**  
+If you like this tool, consider supporting further development:  
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/amateurgod)
